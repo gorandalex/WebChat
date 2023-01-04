@@ -58,26 +58,21 @@ class Server:
                 futures = [self.run_get_curses(executor, count_days)]
                 message = await asyncio.gather(*futures)
             
+            await self.log_exchange()
+            
         return message
     
     async def run_get_curses(self, executor, count_days):
-        loop = asyncio.get_running_loop()
+        loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(executor, currency.get_curses, count_days)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            futures = [self.run_log_exchange(executor)]
-            await asyncio.gather(*futures)
         return result      
-    
-    async def run_log_exchange(self, executor):
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(executor, self.log_exchange)
-            
+                
     async def log_exchange(self):
         apath = aiopath.AsyncPath("log_exchange.txt")
         if not await apath.exists():
             await apath.touch(exist_ok=True)
-        async with aiofile.async_open(apath.absolute(), 'w+') as afp:
-            await afp.write(datetime.now())        
+        async with aiofile.async_open(apath, 'a+') as afp:
+            await afp.write(f'{datetime.now().isoformat()}\n')        
         print('Log was written')
 
 
